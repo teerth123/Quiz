@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int           @id @unique @default(autoincrement())
+  username       String
+  email          String        @unique
+  password       String
+  createdAt      DateTime      @default(now())
+  createdRooms   Quiz[]        @relation("author")
+  Response       Response[]
+  studentQuizzes StudentQuiz[]
+}
+
+model Quiz {
+  id             Int           @id @unique @default(autoincrement())
+  title          String
+  createdAt      DateTime      @default(now())
+  authorId       Int
+  realTime       Boolean       @default(false)
+  uniqueCode     String
+  isOpen Boolean @default(true)
+  question       Question[]
+  author         User          @relation("author", fields: [authorId], references: [id])
+  studentQuizzes StudentQuiz[]
+}
+
+model Question {
+  id                 Int        @id @unique @default(autoincrement())
+  title              String
+  answers            String[]
+  correctAnswerIndex Int
+  marks              Int
+  quizId             Int
+  countDown          Float?
+  quiz               Quiz       @relation(fields: [quizId], references: [id])
+  responses          Response[]
+}
+
+model StudentQuiz {
+  id        Int  @id @default(autoincrement())
+  studentId Int
+  quizId    Int
+  score     Int  @default(0)
+  quiz      Quiz @relation(fields: [quizId], references: [id])
+  student   User @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId, quizId])
+}
+
+model Response {
+  id            Int      @id @unique @default(autoincrement())
+  studentId     Int
+  questionId    Int
+  answeredIndex Int
+  createdAt     DateTime @default(now())
+  question      Question @relation(fields: [questionId], references: [id])
+  student       User     @relation(fields: [studentId], references: [id])
+}

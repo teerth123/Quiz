@@ -1,0 +1,77 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../dist/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int           @id @unique @default(autoincrement())
+  username       String
+  email          String        @unique
+  password       String
+  createdAt      DateTime      @default(now())
+  Response       Response[]
+  studentQuizzes StudentQuiz[]
+  createdRooms   Quiz[]        @relation("author")
+}
+
+model Quiz {
+  id         Int      @id @unique @default(autoincrement())
+  title      String
+  createdAt  DateTime @default(now())
+  uniqueCode String   @unique
+
+  author   User @relation("author", fields: [authorId], references: [id])
+  authorId Int
+
+  studentQuizzes StudentQuiz[]
+  question       Question[]
+  realTime       Boolean       @default(false)
+}
+
+model Question {
+  id                 Int        @id @unique @default(autoincrement())
+  title              String
+  answers            String[]
+  countDown          Float?
+  correctAnswerIndex Int
+  marks              Int
+  quiz               Quiz       @relation(fields: [quizId], references: [id])
+  quizId             Int
+  responses          Response[]
+}
+
+model StudentQuiz {
+  id        Int @id @default(autoincrement())
+  studentId Int
+  quizId    Int
+  score     Int @default(0)
+
+  student User @relation(fields: [studentId], references: [id])
+  quiz    Quiz @relation(fields: [quizId], references: [id])
+
+  @@unique([studentId, quizId]) // Ensure a user can only attempt a quiz once
+}
+
+model Response {
+  id Int @id @unique @default(autoincrement())
+
+  studentId Int
+  student   User @relation(fields: [studentId], references: [id])
+
+  questionId Int
+  question   Question @relation(fields: [questionId], references: [id])
+
+  answeredIndex Int
+  createdAt     DateTime @default(now())
+}

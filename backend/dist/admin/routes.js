@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AdminRouter = void 0;
+const express_1 = require("express");
+const read_admin_1 = require("./actions/read.admin");
+const post_admin_1 = require("./actions/post.admin");
+const put_admin_1 = require("./actions/put.admin");
+const delete_admin_1 = require("./actions/delete.admin");
+exports.AdminRouter = (0, express_1.Router)();
+exports.AdminRouter.use("/read", read_admin_1.readAdminRouter);
+exports.AdminRouter.use("/post", post_admin_1.postAdminRouter);
+exports.AdminRouter.use("/put", put_admin_1.putAdminRouter);
+exports.AdminRouter.use("/delete", delete_admin_1.deleteAdminRouter);
