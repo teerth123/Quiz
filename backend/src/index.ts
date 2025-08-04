@@ -1,6 +1,7 @@
 import express from "express"
 import http from "http"
 import {WebSocketServer} from "ws"
+import cors from "cors"
 
 import { AdminRouter } from "./admin/routes"
 import { authRouter } from "./auth/auth"
@@ -8,8 +9,9 @@ import { userRouter } from "./participant/routes.participants"
 
 const app = express()
 app.use(express.json())
+app.use(cors());
 const server = http.createServer(app)
-const ws = new WebSocketServer({server})
+export  const wss = new WebSocketServer({server})
 
 app.get("/", (req, res)=>{
     res.json({
@@ -17,13 +19,25 @@ app.get("/", (req, res)=>{
     })
 })
 
+wss.on("connection", (socket)=>{
+    console.log("new user connected");
+
+    socket.on("msg", (data)=>{
+        wss.emit(data)
+    })
+
+    // join(wss, socket)
+})
+
 app.use("/api/v1/auth", authRouter)
 app.use("/api/v1", AdminRouter)
 app.use("/api/v1/student", userRouter)
 
-server.listen(3000, ()=>{
-    console.log("server running on 3000")
+server.listen(5000, ()=>{
+    console.log("server running on 5000")
 })
+
+
 
 
 
@@ -33,10 +47,10 @@ server.listen(3000, ()=>{
 //get created quiz   
 //toggle [realtime, http]
 //close quiz(!realtime) -> not accepting responses
+// get bulk result quiz wise for teacher
  //done till here
 
 //start quiz
-// get bulk result quiz wise for teacher
 //if (realtime) get next que
 //get result(realtime)
 //kick participant

@@ -25,7 +25,7 @@ model Quiz {
   authorId       Int
   realTime       Boolean       @default(false)
   uniqueCode     String
-  isOpen Boolean @default(true)
+  isOpen         Boolean       @default(true)
   question       Question[]
   author         User          @relation("author", fields: [authorId], references: [id])
   studentQuizzes StudentQuiz[]
