@@ -21,44 +21,91 @@ exports.readAdminRouter.get("/createdQuizes", auth_middleware_1.verifyJWT, (req,
             authorId: req.id
         },
         select: {
+            id: true,
             studentQuizzes: true,
             title: true,
-        }
+            createdAt: true,
+            // isOpen:true 
+            realTime: true,
+            uniqueCode: true
+        },
     });
     res.json({
         quizes
     });
 }));
-exports.readAdminRouter.get("/resultperQuiz", auth_middleware_1.verifyJWT, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+exports.readAdminRouter.get("/resultperQuiz/:quizId", auth_middleware_1.verifyJWT, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { quizId } = req.params;
+    // console.log(typeof (quizId))
+    const quizIdNum = Number(quizId);
+    // console.log(quizId)
     try {
         if (!req.id) {
             console.error("user not found");
             return;
         }
-        const { quizId } = req.body;
-        const result = yield prisma.quiz.findUnique({
+        const quizTitle = yield prisma.quiz.findUnique({
             where: {
-                id: quizId,
-                authorId: req.id
+                id: quizIdNum
             },
-            include: {
-                studentQuizzes: {
+            select: {
+                title: true
+            }
+        });
+        const result = yield prisma.studentQuiz.findMany({
+            where: {
+                quizId: quizIdNum,
+            },
+            select: {
+                score: true,
+                student: {
                     select: {
-                        student: {
-                            select: {
-                                username: true
-                            }
-                        },
-                        score: true
+                        username: true,
+                        id: true,
+                        email: true
                     },
+                },
+                // quiz:{
+                //     select:{
+                //         title:true,
+                //         question:{
+                //            select:{
+                //                 title:true,
+                //                 answers:true,
+                //                 correctAnswerIndex:true,
+                //                 marks:true
+                //             }
+                //         }
+                //     }
+                // }
+            }
+        });
+        const questions = yield prisma.quiz.findMany({
+            where: {
+                id: quizIdNum
+            },
+            select: {
+                question: {
+                    select: {
+                        title: true,
+                        answers: true,
+                        correctAnswerIndex: true,
+                        marks: true
+                    }
                 }
             }
         });
         res.json({
-            result
+            result,
+            quizTitle,
+            questions
         });
+        console.log(result); //student response
+        console.log(quizTitle); //quiz title
+        console.log(questions); //questoins
     }
     catch (e) {
+        console.error("error found -" + e);
     }
 }));
 // readAdminRouter.get("/attendedQuizes", verifyJWT, async(req:userReq, res:Response)=>{

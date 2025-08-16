@@ -37,7 +37,7 @@ export function SignupForm({
         username : username
       })
       localStorage.setItem("token", res.data.token)
-      router.push("/dashboard")
+      router.push("/Dashboard")
     } catch (e) {
       console.error("error found - " + e);
       return;

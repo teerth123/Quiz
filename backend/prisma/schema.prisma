@@ -7,6 +7,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Type{
+  MCQ 
+  INPUT
+}
+
 model User {
   id             Int           @id @unique @default(autoincrement())
   username       String
@@ -34,8 +39,9 @@ model Quiz {
 model Question {
   id                 Int        @id @unique @default(autoincrement())
   title              String
+  type               Type @default(MCQ)
   answers            String[]
-  correctAnswerIndex Int
+  correctAnswerIndex Int?
   marks              Int
   quizId             Int
   countDown          Float?
@@ -58,7 +64,8 @@ model Response {
   id            Int      @id @unique @default(autoincrement())
   studentId     Int
   questionId    Int
-  answeredIndex Int
+  answeredIndex Int? @default(0)
+  answeredText String? @default("")
   createdAt     DateTime @default(now())
   question      Question @relation(fields: [questionId], references: [id])
   student       User     @relation(fields: [studentId], references: [id])
