@@ -67,9 +67,9 @@ export default function Dashboard() {
     return (
         <>
 
-            <div className="flex flex-wrap items-center gap-2 justify-end m-5 w-max-[1250px] md:flex-row ">
-                <Button>Create New Button</Button>
-            </div>
+            <Link href={"/CreateNewQuiz"} className="flex flex-wrap items-center gap-2 justify-end m-5 w-max-[1250px] md:flex-row ">
+                <Button>Create New Quiz</Button>
+            </Link>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-w-[1250px] mx-auto">
                 {
                     quizzes.map((quiz, index) => {

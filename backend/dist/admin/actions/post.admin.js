@@ -49,7 +49,8 @@ exports.postAdminRouter.post("/createQuiz", auth_middleware_1.verifyJWT, (req, r
         const quizId = quizCreated.id;
         res.json({
             msg: "quiz created succesfully",
-            quizId
+            quizId,
+            status: "+"
         });
     }
     catch (e) {
@@ -86,7 +87,8 @@ exports.postAdminRouter.post("/addQuestions", auth_middleware_1.verifyJWT, (req,
         if (addQuestions) {
             res.json({
                 msg: "added questions succesfully to quiz, quizId is",
-                quizId
+                quizId,
+                status: "+"
             });
         }
     }

@@ -50,7 +50,8 @@ postAdminRouter.post("/createQuiz", verifyJWT, async (req: userReq, res: Respons
         const quizId = quizCreated.id
         res.json({
             msg: "quiz created succesfully",
-            quizId
+            quizId,
+            status: "+"
         })
     } catch (e) {
         console.error("error found : " + e)
@@ -88,7 +89,9 @@ postAdminRouter.post("/addQuestions", verifyJWT, async (req, res) => {
         if (addQuestions) {
             res.json({
                 msg: "added questions succesfully to quiz, quizId is",
-                quizId
+                quizId,
+                status: "+"
+
             })
         }
 

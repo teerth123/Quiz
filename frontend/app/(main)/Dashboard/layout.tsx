@@ -20,7 +20,7 @@ export default function MainAppLayout({
 }>) {
     return (
         <>
-            {/* <Navbar /> */}
+            <Navbar />
             <main>{children}</main>
         </>
 
