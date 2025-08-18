@@ -19,7 +19,11 @@ import axios from "axios"
 import { createQuiz, addQuestions } from "@/app/Endpoint"
 import { useRouter } from "next/navigation"
 
-export default function CreateNewQuiz() {
+type quizBuilder = {
+    quizId? : Number
+}
+
+export default function CreateNewQuiz({quizId}:quizBuilder) {
 
     const Router = useRouter()
 
@@ -28,9 +32,9 @@ export default function CreateNewQuiz() {
 
     let demoQuestion: QuesCardProps = {
         quesNo: 1,
-        queTitle: "who is Munni?",
-        options: ["Munni is Aditi", "Munni is Sheetal", "Munni is Nisha", "All of the above"],
-        correctAnsIndex: 1,
+        title: "who is Munni?",
+        answers: ["Munni is Aditi", "Munni is Sheetal", "Munni is Nisha", "All of the above"],
+        correctAnswerIndex: 1,
         marks: 1,
         id: 0
     };
@@ -42,9 +46,9 @@ export default function CreateNewQuiz() {
             ...prev,
             {
                 quesNo: nextquesNo,
-                queTitle: "New Question",
-                options: ["Option 1", "Option 2", "Option 3", "Option 4"],
-                correctAnsIndex: 0,
+                title: "New Question",
+                answers: ["Option 1", "Option 2", "Option 3", "Option 4"],
+                correctAnswerIndex: 0,
                 marks: 1,
                 id: allQuestions.length
             }
@@ -65,7 +69,8 @@ export default function CreateNewQuiz() {
 
     useEffect(() => {
         console.log(allQuestions)
-    }, [allQuestions])
+        console.log(quizMode, quizTitle)
+    }, [allQuestions, quizTitle, quizMode])
 
     const SaveButton = async () => {
         try {
@@ -74,7 +79,7 @@ export default function CreateNewQuiz() {
 
             const createQuizRes = await axios.post(createQuiz, {
                 title: quizTitle,
-                realTime: quizMode
+                realTime: quizMode==="Standard" ? false : true
             }, {
                 headers: {
                     Authorization: `Bearer ${token}`
@@ -131,9 +136,9 @@ export default function CreateNewQuiz() {
                                 return <div className="my-2"
                                     key={i}><QuestionCard
                                         quesNo={q.quesNo}
-                                        queTitle={q.queTitle}
-                                        options={q.options}
-                                        correctAnsIndex={q.correctAnsIndex}
+                                        title={q.title}
+                                        answers={q.answers}
+                                        correctAnswerIndex={q.correctAnswerIndex}
                                         marks={q.marks}
                                         id={q.id}
                                         onDelete={onDelete}

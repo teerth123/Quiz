@@ -25,9 +25,9 @@ const statuses: string[] = ["Option 1", "Option 2", "Option 3", "Option 4"]
 
 export interface QuesCardProps {
     quesNo: number
-    queTitle: string
-    options: string[]
-    correctAnsIndex: number
+    title: string
+    answers: string[]
+    correctAnswerIndex: number
     marks: number
     id: number
     // onDelete : (id:number) => void
@@ -42,9 +42,9 @@ export interface QuestionCardProps extends QuesCardProps {
 
 export default function QuestionCard({
     quesNo,
-    queTitle,
-    options,
-    correctAnsIndex,
+    title,
+    answers,
+    correctAnswerIndex,
     marks,
     id,
     onDelete,
@@ -54,26 +54,26 @@ export default function QuestionCard({
     const [selectedStatus, setSelectedStatus] = React.useState<string | null>(null)
 
     React.useEffect(() => {
-        setSelectedStatus(options[correctAnsIndex] || null)
-    }, [correctAnsIndex, options])
+        setSelectedStatus(answers[correctAnswerIndex] || null)
+    }, [correctAnswerIndex, answers])
 
     const addOption = () => {
-        onUpdate(id, { options: [...options, ""] })
+        onUpdate(id, { answers: [...answers, ""] })
     }
 
     const updateOption = (index: number, value: string) => {
-        const newOptions = [...options]
-        newOptions[index] = value
-        onUpdate(id, { options: newOptions })
+        const newanswers = [...answers]
+        newanswers[index] = value
+        onUpdate(id, { answers: newanswers })
     }
 
     const deleteOption = (index: number) => {
-        const newArray = options.filter((_, i) => i !== index)
-        onUpdate(id, { options: newArray })
+        const newArray = answers.filter((_, i) => i !== index)
+        onUpdate(id, { answers: newArray })
     }
 
-    const updatequeTitle = (value: string) => {
-        onUpdate(id, { queTitle: value })
+    const updatetitle = (value: string) => {
+        onUpdate(id, { title: value })
     }
 
     const updateMarks = (value: number) => {
@@ -92,14 +92,14 @@ export default function QuestionCard({
                 </Label>
                 <Textarea
                     id={`question-${quesNo}`}
-                    placeholder={queTitle}
-                    defaultValue={queTitle}
-                    onChange={(e) => updatequeTitle(e.target.value)}
+                    placeholder={title}
+                    defaultValue={title}
+                    onChange={(e) => updatetitle(e.target.value)}
                 />
             </div>
 
-            <h2 className="font-bold mt-6">Options</h2>
-            {options.map((option, index) => (
+            <h2 className="font-bold mt-6">answers</h2>
+            {answers.map((option, index) => (
                 <div
                     key={index}
                     className="w-full max-w-sm items-center gap-3 flex my-2"
@@ -136,14 +136,14 @@ export default function QuestionCard({
                                 <CommandList>
                                     <CommandEmpty>No results found.</CommandEmpty>
                                     <CommandGroup>
-                                        {options.map((option, index) => (
+                                        {answers.map((option, index) => (
                                             <CommandItem
                                                 key={index}
                                                 value={option}
                                                 onSelect={(value) => {
                                                     setSelectedStatus(value)
                                                     setOpen(false)
-                                                    onUpdate(id, { correctAnsIndex: options.indexOf(value) })
+                                                    onUpdate(id, { correctAnswerIndex: answers.indexOf(value) })
                                                 }}
                                             >
                                                 {option}
