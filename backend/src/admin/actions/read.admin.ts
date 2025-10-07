@@ -87,6 +87,7 @@ readAdminRouter.get("/resultperQuiz/:quizId", verifyJWT, async (req: userReq, re
             select:{
                 question:{
                     select:{
+                        id:true,
                         title:true,
                         answers:true,
                         correctAnswerIndex:true,
@@ -99,7 +100,8 @@ readAdminRouter.get("/resultperQuiz/:quizId", verifyJWT, async (req: userReq, re
         res.json({
             result,
             quizTitle,
-            questions
+            questions,
+            status:"+"
         })
         console.log(result) //student response
         console.log(quizTitle) //quiz title

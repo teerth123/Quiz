@@ -61,8 +61,9 @@ exports.postAdminRouter.post("/createQuiz", auth_middleware_1.verifyJWT, (req, r
 exports.postAdminRouter.post("/addQuestions", auth_middleware_1.verifyJWT, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { questions, quizId } = req.body;
+        const numId = parseInt(quizId, 10);
         const quiz = yield prisma.quiz.findUnique({
-            where: { id: quizId }
+            where: { id: numId }
         });
         if (!quiz) {
             res.json({
@@ -80,7 +81,7 @@ exports.postAdminRouter.post("/addQuestions", auth_middleware_1.verifyJWT, (req,
                     countDown: (quiz === null || quiz === void 0 ? void 0 : quiz.realTime) ? ((_a = i.countDown) !== null && _a !== void 0 ? _a : 30) : null,
                     correctAnswerIndex: i.correctAnswerIndex,
                     marks: i.marks,
-                    quizId: quizId
+                    quizId: numId
                 });
             })
         });

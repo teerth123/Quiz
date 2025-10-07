@@ -87,6 +87,7 @@ exports.readAdminRouter.get("/resultperQuiz/:quizId", auth_middleware_1.verifyJW
             select: {
                 question: {
                     select: {
+                        id: true,
                         title: true,
                         answers: true,
                         correctAnswerIndex: true,
@@ -98,7 +99,8 @@ exports.readAdminRouter.get("/resultperQuiz/:quizId", auth_middleware_1.verifyJW
         res.json({
             result,
             quizTitle,
-            questions
+            questions,
+            status: "+"
         });
         console.log(result); //student response
         console.log(quizTitle); //quiz title

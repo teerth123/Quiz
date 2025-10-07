@@ -61,10 +61,10 @@ postAdminRouter.post("/createQuiz", verifyJWT, async (req: userReq, res: Respons
 
 postAdminRouter.post("/addQuestions", verifyJWT, async (req, res) => {
     try {
-        const { questions, quizId } = req.body as { questions: question[], quizId: number }
-
+        const { questions, quizId } = req.body as { questions: question[], quizId: string }
+        const numId = parseInt(quizId, 10);
         const quiz = await prisma.quiz.findUnique({
-            where: { id: quizId }
+            where: { id: numId }
         })
 
         if (!quiz) {
@@ -82,7 +82,7 @@ postAdminRouter.post("/addQuestions", verifyJWT, async (req, res) => {
                 countDown: quiz?.realTime ? (i.countDown ?? 30) : null,
                 correctAnswerIndex: i.correctAnswerIndex,
                 marks: i.marks,
-                quizId: quizId
+                quizId: numId
             }))
         })
 

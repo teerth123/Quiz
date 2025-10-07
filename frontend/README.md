@@ -34,3 +34,17 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+
+no route for attempting quizzes
+responses are not showen up // app/main/dashboard/quiz/page.tsx api is being called but no response
+check how the test-submission api is written(for each question does it submits or creates an object)
+students should also able to see his responses after taking the test
+
+## to attempt quiz
+add a simple form - quizID + pass (to access the quiz) 
+displaying questions and tracking responses
+
+
+That's it
+we are done

@@ -1,10 +1,12 @@
 "use client"
 
 import axios from "axios";
+import Link from "next/link";
 import { useParams } from "next/navigation"
 import { useEffect, useState } from "react";
 import { quizResults } from "@/app/Endpoint";
 import { heading } from "@/app/Endpoint"
+import Router, { useRouter } from "next/navigation";
 import {
     Table,
     TableBody,
@@ -75,6 +77,8 @@ export default function QuizDetails() {
         //     console.log("no data")
         // }
     }, [])
+
+    const Router = useRouter()
     return (
         <>
             <div>
@@ -113,7 +117,7 @@ export default function QuizDetails() {
 
                     <div className="flex justify-between">
                         <h1>Questions</h1>
-                        <Button>Edit Questions</Button>
+                        <Button onClick={()=>Router.push(`/CreateNewQuiz?quizId=${quizId}`)}>Edit Questions</Button>
                     </div>
                     {questions && questions.length > 0 ? (
 
