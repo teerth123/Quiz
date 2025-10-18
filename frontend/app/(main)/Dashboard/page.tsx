@@ -9,12 +9,13 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
-import { createdQuiz } from "@/app/Endpoint"
+import { createdQuiz, deleteQuiz } from "@/app/Endpoint"
 import axios from "axios"
 import { useEffect, useState } from "react"
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
-// import { useRouter } from "next/router"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { MoreVertical, Pencil, Trash2, Copy } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 interface StudentQuiz {
     id: number;
@@ -41,7 +42,12 @@ function slugify(text: string) {
 }
 
 export default function Dashboard() {
-    const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+    const router = useRouter()
+    const [quizzes, setQuizzes] = useState<Quiz[]>([])
+    const [openMenuId, setOpenMenuId] = useState<number | null>(null)
+    const [deletingQuizId, setDeletingQuizId] = useState<number | null>(null)
+    const [copiedQuizId, setCopiedQuizId] = useState<number | null>(null)
+
     useEffect(() => {
         const fetchquestions = async () => {
             try {
@@ -55,46 +61,173 @@ export default function Dashboard() {
             }
             catch (e) {
                 console.error("error found - " + e)
-                return
             }
         }
 
         fetchquestions()
     }, [])
 
-    // const Router = useRouter()
+    useEffect(() => {
+        if (!copiedQuizId) return
+        const timeout = setTimeout(() => setCopiedQuizId(null), 1600)
+        return () => clearTimeout(timeout)
+    }, [copiedQuizId])
+
+    const closeMenu = () => setOpenMenuId(null)
+
+    const handleEdit = (quizId: number) => {
+        closeMenu()
+        router.push(`/CreateNewQuiz?quizId=${quizId}`)
+    }
+
+    const handleDelete = async (quizId: number) => {
+        closeMenu()
+        if (!window.confirm("Delete this quiz and all associated responses?")) return
+
+        try {
+            setDeletingQuizId(quizId)
+            const token = localStorage.getItem("token")
+            await axios.delete(deleteQuiz, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+                data: {
+                    quizId,
+                }
+            })
+            setQuizzes((prev) => prev.filter((quiz) => quiz.id !== quizId))
+        }
+        catch (e) {
+            console.error("error deleting quiz - ", e)
+        }
+        finally {
+            setDeletingQuizId(null)
+        }
+    }
+
+    const handleCopy = async (quizId: number, code: string) => {
+        try {
+            await navigator.clipboard.writeText(code)
+            setCopiedQuizId(quizId)
+        }
+        catch (e) {
+            console.error("error copying quiz code - ", e)
+        }
+    }
+
+    const navigateToDetails = (quizSlug: string, quizId: number) => {
+        router.push(`/Dashboard/${quizSlug}-${quizId}`)
+    }
 
     return (
         <>
 
-            <Link href={"/CreateNewQuiz"} className="flex flex-wrap items-center gap-2 justify-end m-5 w-max-[1250px] md:flex-row ">
-                <Button>Create New Quiz</Button>
-            </Link>
+            <div className="flex w-full max-w-[1250px] justify-end gap-2 px-4 md:px-0 mx-auto mb-5">
+                <Button onClick={() => router.push("/CreateNewQuiz")}>
+                    Create New Quiz
+                </Button>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-w-[1250px] mx-auto">
-                {
-                    quizzes.map((quiz, index) => {
-                        const quizSlug = slugify(quiz.title)
-                        return (
-                                <Card className="w-full max-w-sm h-fit p-3 cursor-pointer"
-                                    key={index}
-                                >
-                                    <Link href={`/Dashboard/${quizSlug}-${quiz.id}`} >
-                                        <CardHeader>
-                                            <CardTitle className="">{quiz.title}</CardTitle>
-                                            <CardDescription>Created At : {quiz.createdAt?.toString().slice(0, 10)}</CardDescription>
-                                            <CardAction>Card Action</CardAction>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <p>Responses : {quiz.studentQuizzes?.length || 0} | Mode : {quiz.realTime ? "Real-Time" : "Standard"} </p>
-                                        </CardContent>
-                                        <CardFooter>
-                                            <p>Unique Code : {quiz.uniqueCode}</p>
-                                        </CardFooter>
-                                    </Link>
-                                </Card>
-                        )
-                    })
-                }
+                {quizzes.map((quiz) => {
+                    const quizSlug = slugify(quiz.title)
+                    const isMenuOpen = openMenuId === quiz.id
+                    const isDeleting = deletingQuizId === quiz.id
+
+                    return (
+                        <Card
+                            className="w-full max-w-sm h-fit p-3 cursor-pointer transition-all hover:border-primary"
+                            key={quiz.id}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => navigateToDetails(quizSlug, quiz.id)}
+                            onKeyDown={(event) => {
+                                if (event.key === "Enter" || event.key === " ") {
+                                    event.preventDefault()
+                                    navigateToDetails(quizSlug, quiz.id)
+                                }
+                            }}
+                        >
+                            <CardHeader>
+                                <div>
+                                    <CardTitle>{quiz.title}</CardTitle>
+                                    <CardDescription>
+                                        Created At : {quiz.createdAt?.toString().slice(0, 10)}
+                                    </CardDescription>
+                                </div>
+                                <CardAction>
+                                    <Popover
+                                        open={isMenuOpen}
+                                        onOpenChange={(open) => setOpenMenuId(open ? quiz.id : null)}
+                                    >
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={(event) => {
+                                                    event.stopPropagation()
+                                                }}
+                                                aria-label="Quiz actions"
+                                            >
+                                                <MoreVertical className="size-4" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent
+                                            align="end"
+                                            className="w-48 p-2 flex flex-col gap-1"
+                                            sideOffset={8}
+                                            onClick={(event) => {
+                                                event.stopPropagation()
+                                            }}
+                                        >
+                                            <Button
+                                                variant="ghost"
+                                                className="justify-start"
+                                                onClick={(event) => {
+                                                    event.stopPropagation()
+                                                    handleEdit(quiz.id)
+                                                }}
+                                            >
+                                                <Pencil className="size-4" />
+                                                Edit quiz
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                className="justify-start"
+                                                disabled={isDeleting}
+                                                onClick={(event) => {
+                                                    event.stopPropagation()
+                                                    handleDelete(quiz.id)
+                                                }}
+                                            >
+                                                <Trash2 className="size-4" />
+                                                {isDeleting ? "Deleting..." : "Delete quiz"}
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                className="justify-start"
+                                                onClick={(event) => {
+                                                    event.stopPropagation()
+                                                    handleCopy(quiz.id, quiz.uniqueCode)
+                                                }}
+                                            >
+                                                <Copy className="size-4" />
+                                                {copiedQuizId === quiz.id ? "Code copied" : "Copy invite code"}
+                                            </Button>
+                                        </PopoverContent>
+                                    </Popover>
+                                </CardAction>
+                            </CardHeader>
+                            <CardContent>
+                                <p>
+                                    Responses : {quiz.studentQuizzes?.length || 0} | Mode : {quiz.realTime ? "Real-Time" : "Standard"}
+                                </p>
+                            </CardContent>
+                            <CardFooter>
+                                <p>Unique Code : {quiz.uniqueCode}</p>
+                            </CardFooter>
+                        </Card>
+                    )
+                })}
             </div>
 
         </>

@@ -61,3 +61,10 @@ displaying questions and tracking responses
 
 That's it
 we are done
+
+
+
+
+### for testing
+Teacher's credentials - email : teerth12@gmail.com, pass: teerth12
+Student's credentials - email : teerth@gmail.com, pass: okgoogle12

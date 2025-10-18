@@ -25,12 +25,17 @@ exports.readParticipantRouter.get("/attemptedQuiz", auth_middleware_1.verifyJWT,
             where: {
                 studentId: req.id,
             },
+            orderBy: {
+                createdAt: "desc"
+            },
             select: {
                 quizId: true,
                 score: true,
+                createdAt: true,
                 quiz: {
                     select: {
-                        title: true
+                        title: true,
+                        uniqueCode: true
                     }
                 }
             }
@@ -44,33 +49,116 @@ exports.readParticipantRouter.get("/attemptedQuiz", auth_middleware_1.verifyJWT,
         return;
     }
 }));
-exports.readParticipantRouter.get("/attemptedQuizDetails", auth_middleware_1.verifyJWT, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+exports.readParticipantRouter.get("/quizByCode/:code", auth_middleware_1.verifyJWT, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         if (!req.id) {
             console.error("user not found");
             return;
         }
-        const { quizId } = req.body;
-        const isQuiz = yield prisma.quiz.findUnique({ where: { id: quizId } });
-        if (!isQuiz) {
-            res.json({
+        const { code } = req.params;
+        const quiz = yield prisma.quiz.findFirst({
+            where: { uniqueCode: code },
+            select: {
+                id: true,
+                title: true,
+                isOpen: true,
+                question: {
+                    select: {
+                        id: true,
+                        title: true,
+                        answers: true,
+                        marks: true
+                    }
+                }
+            }
+        });
+        if (!quiz) {
+            res.status(404).json({
                 msg: "quiz not found"
             });
             return;
         }
-        const isAttempted = yield prisma.studentQuiz.findFirst({
-            where: {
-                studentId: req.id,
-                quizId: quizId
-            }
-        });
-        if (!isAttempted) {
-            res.json({
-                msg: "you haven't attended the quiz"
+        if (!quiz.isOpen) {
+            res.status(403).json({
+                msg: "quiz is not accepting responses"
             });
             return;
         }
-        const studentResp = yield prisma.response.findMany({
+        const existingAttempt = yield prisma.studentQuiz.findFirst({
+            where: {
+                quizId: quiz.id,
+                studentId: req.id
+            },
+            select: {
+                id: true
+            }
+        });
+        if (existingAttempt) {
+            res.status(409).json({
+                msg: "quiz already attempted"
+            });
+            return;
+        }
+        res.json({
+            quiz: {
+                id: quiz.id,
+                title: quiz.title
+            },
+            questions: quiz.question
+        });
+    }
+    catch (e) {
+        console.error("error found - " + e);
+        res.status(500).json({
+            msg: "unable to fetch quiz"
+        });
+        return;
+    }
+}));
+exports.readParticipantRouter.get("/attemptedQuizDetails/:quizId", auth_middleware_1.verifyJWT, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        if (!req.id) {
+            console.error("user not found");
+            return;
+        }
+        const { quizId: quizIdParam } = req.params;
+        const quizId = Number(quizIdParam);
+        if (Number.isNaN(quizId)) {
+            res.status(400).json({
+                msg: "invalid quiz id"
+            });
+            return;
+        }
+        const quiz = yield prisma.quiz.findUnique({
+            where: { id: quizId },
+            select: {
+                id: true,
+                title: true
+            }
+        });
+        if (!quiz) {
+            res.status(404).json({
+                msg: "quiz not found"
+            });
+            return;
+        }
+        const attempt = yield prisma.studentQuiz.findFirst({
+            where: {
+                quizId: quizId,
+                studentId: req.id
+            },
+            select: {
+                score: true,
+                createdAt: true
+            }
+        });
+        if (!attempt) {
+            res.status(403).json({
+                msg: "quiz has not been attempted"
+            });
+            return;
+        }
+        const responses = yield prisma.response.findMany({
             where: {
                 studentId: req.id,
                 question: {
@@ -82,20 +170,34 @@ exports.readParticipantRouter.get("/attemptedQuizDetails", auth_middleware_1.ver
                 answeredIndex: true,
                 question: {
                     select: {
+                        id: true,
                         title: true,
+                        answers: true,
                         correctAnswerIndex: true,
-                        marks: true,
-                        answers: true
+                        marks: true
                     }
                 }
             }
         });
         res.json({
-            msg: studentResp
+            quiz,
+            attempt: {
+                score: attempt.score,
+                attemptedAt: attempt.createdAt
+            },
+            responses: responses.map((response) => ({
+                questionId: response.questionId,
+                answeredIndex: response.answeredIndex,
+                isCorrect: response.question.correctAnswerIndex === response.answeredIndex,
+                question: response.question
+            }))
         });
     }
     catch (e) {
         console.error("error found - " + e);
+        res.status(500).json({
+            msg: "unable to fetch attempt details"
+        });
         return;
     }
 }));

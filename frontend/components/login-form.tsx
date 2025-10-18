@@ -27,9 +27,6 @@ const [email, setEmail] = useState("")
 
   async function submitForm() {
     try {
-      console.log(email)
-      console.log(password)
-      console.log(username)
       const res = await axios.post(login, {
         email: email,
         password: password,

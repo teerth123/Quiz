@@ -28,9 +28,6 @@ export function SignupForm({
 
   async function submitForm() {
     try {
-      console.log(email)
-      console.log(password)
-      console.log(username)
       const res = await axios.post(signup, {
         email: email,
         password: password,

@@ -16,3 +16,6 @@ export const deleteQue =  `${heading}/api/v1/delete/deleteQue`
 export const deleteQuiz = `${heading}/api/v1/delete/deleteQuiz`
 
 export const getAttemptedQuizzes = `${heading}/api/v1/student/read/attemptedQuiz`
+export const getQuizByCode = `${heading}/api/v1/student/read/quizByCode`
+export const attemptQuiz = `${heading}/api/v1/student/post/attemptQuiz`
+export const getAttemptedQuizDetails = `${heading}/api/v1/student/read/attemptedQuizDetails`

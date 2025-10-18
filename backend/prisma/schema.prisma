@@ -54,6 +54,7 @@ model StudentQuiz {
   studentId Int
   quizId    Int
   score     Int  @default(0)
+  createdAt DateTime @default(now())
   quiz      Quiz @relation(fields: [quizId], references: [id])
   student   User @relation(fields: [studentId], references: [id])
 

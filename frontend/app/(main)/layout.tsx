@@ -1,5 +1,7 @@
-import Navbar from "@/components/Navbar";
+"use client"
+
 import { Geist, Geist_Mono } from "next/font/google";
+import { AuthGuard } from "@/components/AuthGuard";
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -19,10 +21,9 @@ export default function MainAppLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <>
-            {/* <Navbar /> */}
+        <AuthGuard>
             <main>{children}</main>
-        </>
+        </AuthGuard>
 
     );
 }
