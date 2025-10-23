@@ -32,7 +32,7 @@ exports.readParticipantRouter.get("/attemptedQuiz", auth_middleware_1.verifyJWT,
                 quizId: true,
                 score: true,
                 createdAt: true,
-                quiz: {
+                Quiz: {
                     select: {
                         title: true,
                         uniqueCode: true
@@ -41,7 +41,7 @@ exports.readParticipantRouter.get("/attemptedQuiz", auth_middleware_1.verifyJWT,
             }
         });
         res.json({
-            result
+            result: result.map((r) => (Object.assign(Object.assign({}, r), { quiz: r.Quiz })))
         });
     }
     catch (e) {
@@ -62,10 +62,11 @@ exports.readParticipantRouter.get("/quizByCode/:code", auth_middleware_1.verifyJ
                 id: true,
                 title: true,
                 isOpen: true,
-                question: {
+                Question: {
                     select: {
                         id: true,
                         title: true,
+                        type: true,
                         answers: true,
                         marks: true
                     }
@@ -78,6 +79,7 @@ exports.readParticipantRouter.get("/quizByCode/:code", auth_middleware_1.verifyJ
             });
             return;
         }
+        console.log("Quiz questions from DB:", JSON.stringify(quiz.Question, null, 2));
         if (!quiz.isOpen) {
             res.status(403).json({
                 msg: "quiz is not accepting responses"
@@ -104,7 +106,7 @@ exports.readParticipantRouter.get("/quizByCode/:code", auth_middleware_1.verifyJ
                 id: quiz.id,
                 title: quiz.title
             },
-            questions: quiz.question
+            questions: quiz.Question.map((q) => (Object.assign(Object.assign({}, q), { type: q.type || "MCQ" })))
         });
     }
     catch (e) {
@@ -161,19 +163,24 @@ exports.readParticipantRouter.get("/attemptedQuizDetails/:quizId", auth_middlewa
         const responses = yield prisma.response.findMany({
             where: {
                 studentId: req.id,
-                question: {
-                    quizId: quizId
+                Question: {
+                    Quiz: {
+                        id: quizId
+                    }
                 }
             },
             select: {
                 questionId: true,
                 answeredIndex: true,
-                question: {
+                answeredText: true,
+                Question: {
                     select: {
                         id: true,
                         title: true,
+                        type: true,
                         answers: true,
                         correctAnswerIndex: true,
+                        correctAnswerText: true,
                         marks: true
                     }
                 }
@@ -185,12 +192,18 @@ exports.readParticipantRouter.get("/attemptedQuizDetails/:quizId", auth_middlewa
                 score: attempt.score,
                 attemptedAt: attempt.createdAt
             },
-            responses: responses.map((response) => ({
-                questionId: response.questionId,
-                answeredIndex: response.answeredIndex,
-                isCorrect: response.question.correctAnswerIndex === response.answeredIndex,
-                question: response.question
-            }))
+            responses: responses.map((response) => {
+                var _a, _b;
+                return ({
+                    questionId: response.questionId,
+                    answeredIndex: response.answeredIndex,
+                    answeredText: response.answeredText,
+                    isCorrect: response.Question.type === "MCQ"
+                        ? response.Question.correctAnswerIndex === response.answeredIndex
+                        : ((_a = response.answeredText) === null || _a === void 0 ? void 0 : _a.toLowerCase().trim()) === ((_b = response.Question.correctAnswerText) === null || _b === void 0 ? void 0 : _b.toLowerCase().trim()),
+                    question: Object.assign(Object.assign({}, response.Question), { id: response.Question.id, title: response.Question.title, type: response.Question.type, answers: response.Question.answers, correctAnswerIndex: response.Question.correctAnswerIndex, correctAnswerText: response.Question.correctAnswerText, marks: response.Question.marks })
+                });
+            })
         });
     }
     catch (e) {

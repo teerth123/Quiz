@@ -41,15 +41,24 @@ exports.putAdminRouter.put("/updateQuiz", auth_middleware_1.verifyJWT, (req, res
             });
             //change in questions
             for (const q of questions) {
+                const updateData = {
+                    title: q.title,
+                    type: q.type || "MCQ",
+                    answers: q.answers,
+                    marks: q.marks,
+                    countDown: (quiz === null || quiz === void 0 ? void 0 : quiz.realTime) ? ((_a = q.countDown) !== null && _a !== void 0 ? _a : 30) : null,
+                };
+                // Handle question type-specific fields
+                if (q.type === "INPUT") {
+                    updateData.correctAnswerIndex = null;
+                    updateData.correctAnswerText = q.correctAnswerText || null;
+                }
+                else {
+                    updateData.correctAnswerIndex = q.correctAnswerIndex;
+                }
                 yield prisma.question.update({
                     where: { id: q.id },
-                    data: {
-                        title: q.title,
-                        answers: q.answers,
-                        correctAnswerIndex: q.correctAnswerIndex,
-                        marks: q.marks,
-                        countDown: (quiz === null || quiz === void 0 ? void 0 : quiz.realTime) ? ((_a = q.countDown) !== null && _a !== void 0 ? _a : 30) : null,
-                    }
+                    data: updateData
                 });
             }
             res.json({

@@ -12,7 +12,7 @@ readParticipantRouter.get("/attemptedQuiz", verifyJWT, async (req: userReq, res)
             console.error("user not found")
             return
         }
-        const result = await prisma.studentQuiz.findMany({
+        const result = await (prisma.studentQuiz.findMany as any)({
             where: {
                 studentId: req.id!,
             },
@@ -23,7 +23,7 @@ readParticipantRouter.get("/attemptedQuiz", verifyJWT, async (req: userReq, res)
                 quizId: true,
                 score: true,
                 createdAt: true,
-                quiz: {
+                Quiz: {
                     select: {
                         title: true,
                         uniqueCode: true
@@ -33,7 +33,10 @@ readParticipantRouter.get("/attemptedQuiz", verifyJWT, async (req: userReq, res)
         })
 
         res.json({
-            result
+            result: result.map((r: any) => ({
+                ...r,
+                quiz: r.Quiz
+            }))
         })
     } catch (e) {
         console.error("found error - " + e)
@@ -51,16 +54,17 @@ readParticipantRouter.get("/quizByCode/:code", verifyJWT, async (req: userReq, r
 
         const { code } = req.params
 
-        const quiz = await prisma.quiz.findFirst({
+        const quiz = await (prisma.quiz.findFirst as any)({
             where: { uniqueCode: code },
             select: {
                 id: true,
                 title: true,
                 isOpen: true,
-                question: {
+                Question: {
                     select: {
                         id: true,
                         title: true,
+                        type: true,
                         answers: true,
                         marks: true
                     }
@@ -74,6 +78,8 @@ readParticipantRouter.get("/quizByCode/:code", verifyJWT, async (req: userReq, r
             })
             return
         }
+
+        console.log("Quiz questions from DB:", JSON.stringify(quiz.Question, null, 2))
 
         if (!quiz.isOpen) {
             res.status(403).json({
@@ -104,7 +110,10 @@ readParticipantRouter.get("/quizByCode/:code", verifyJWT, async (req: userReq, r
                 id: quiz.id,
                 title: quiz.title
             },
-            questions: quiz.question
+            questions: quiz.Question.map((q: any) => ({
+                ...q,
+                type: q.type || "MCQ"
+            }))
         })
     } catch (e) {
         console.error("error found - " + e)
@@ -165,22 +174,27 @@ readParticipantRouter.get("/attemptedQuizDetails/:quizId", verifyJWT, async (req
             return
         }
 
-        const responses = await prisma.response.findMany({
+        const responses = await (prisma.response.findMany as any)({
             where: {
                 studentId: req.id!,
-                question: {
-                    quizId: quizId
+                Question: {
+                    Quiz: {
+                        id: quizId
+                    }
                 }
             },
             select: {
                 questionId: true,
                 answeredIndex: true,
-                question: {
+                answeredText: true,
+                Question: {
                     select: {
                         id: true,
                         title: true,
+                        type: true,
                         answers: true,
                         correctAnswerIndex: true,
+                        correctAnswerText: true,
                         marks: true
                     }
                 }
@@ -193,11 +207,23 @@ readParticipantRouter.get("/attemptedQuizDetails/:quizId", verifyJWT, async (req
                 score: attempt.score,
                 attemptedAt: attempt.createdAt
             },
-            responses: responses.map((response) => ({
+            responses: responses.map((response: any) => ({
                 questionId: response.questionId,
                 answeredIndex: response.answeredIndex,
-                isCorrect: response.question.correctAnswerIndex === response.answeredIndex,
-                question: response.question
+                answeredText: response.answeredText,
+                isCorrect: response.Question.type === "MCQ" 
+                    ? response.Question.correctAnswerIndex === response.answeredIndex
+                    : response.answeredText?.toLowerCase().trim() === response.Question.correctAnswerText?.toLowerCase().trim(),
+                question: {
+                    ...response.Question,
+                    id: response.Question.id,
+                    title: response.Question.title,
+                    type: response.Question.type,
+                    answers: response.Question.answers,
+                    correctAnswerIndex: response.Question.correctAnswerIndex,
+                    correctAnswerText: response.Question.correctAnswerText,
+                    marks: response.Question.marks
+                }
             }))
         })
     } catch (e) {

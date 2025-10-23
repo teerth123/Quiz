@@ -1,8 +1,7 @@
 import { Router, Response } from "express";
-import { PrismaClient } from "../../generated/prisma";
+import { PrismaClient } from "@prisma/client";
 import { userReq } from "../../auth/auth.middleware";
 import { verifyJWT } from "../../auth/auth.middleware";
-import { Quiz } from "@prisma/client";
 import { number } from "zod";
 
 
@@ -10,20 +9,20 @@ export const readAdminRouter = Router()
 const prisma = new PrismaClient()
 
 readAdminRouter.get("/createdQuizes", verifyJWT, async (req: userReq, res: Response) => {
-    const quizes = await prisma.quiz.findMany({
+    const quizes = await ((prisma.quiz.findMany) as any)({
         where: {
             authorId: req.id
         },
         select: {
             id: true,
-            studentQuizzes: true,
+            StudentQuiz: true,
             title: true,
             createdAt: true,
             // isOpen:true 
             realTime: true,
             uniqueCode: true
         },
-    })
+    } as any)
 
     res.json({
         quizes
@@ -51,23 +50,23 @@ readAdminRouter.get("/resultperQuiz/:quizId", verifyJWT, async (req: userReq, re
             }
         })
 
-        const result = await prisma.studentQuiz.findMany({
+        const result = await (prisma.studentQuiz.findMany as any)({
             where: {
                 quizId: quizIdNum,
             },
             select: {
                 score: true,
-                student: {
+                User: {
                     select: {
                         username: true,
                         id:true,
                         email:true
                     },
                 },
-                // quiz:{
+                // Quiz:{
                 //     select:{
                 //         title:true,
-                //         question:{
+                //         Question:{
                 //            select:{
                 //                 title:true,
                 //                 answers:true,
@@ -80,17 +79,19 @@ readAdminRouter.get("/resultperQuiz/:quizId", verifyJWT, async (req: userReq, re
             }
         })
 
-        const questions = await prisma.quiz.findMany({
+        const questions = await (prisma.quiz.findMany as any)({
             where:{
                 id:quizIdNum
             },
             select:{
-                question:{
+                Question:{
                     select:{
                         id:true,
                         title:true,
+                        type:true,
                         answers:true,
                         correctAnswerIndex:true,
+                        correctAnswerText:true,
                         marks:true
                     }
                 }
@@ -98,9 +99,14 @@ readAdminRouter.get("/resultperQuiz/:quizId", verifyJWT, async (req: userReq, re
         })
 
         res.json({
-            result,
+            result: result.map((r: any) => ({
+                ...r,
+                student: r.User
+            })),
             quizTitle,
-            questions,
+            questions: questions.map((q: any) => ({
+                question: q.Question
+            })),
             status:"+"
         })
         console.log(result) //student response

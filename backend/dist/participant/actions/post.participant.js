@@ -16,6 +16,7 @@ const auth_middleware_1 = require("../../auth/auth.middleware");
 exports.postParticipantRouter = (0, express_1.Router)();
 const prisma = new client_1.PrismaClient();
 exports.postParticipantRouter.post("/attemptQuiz", auth_middleware_1.verifyJWT, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
         let score = 0;
         if (!req.id) {
@@ -52,25 +53,48 @@ exports.postParticipantRouter.post("/attemptQuiz", auth_middleware_1.verifyJWT, 
         }
         else {
             const res = yield prisma.response.createMany({
-                data: studentResp.map((i) => ({
-                    studentId: req.id,
-                    questionId: i.questionId,
-                    answeredIndex: i.answeredIndex,
-                    createdAt: new Date(),
-                }))
+                data: studentResp.map((i) => {
+                    var _a, _b;
+                    return ({
+                        studentId: req.id,
+                        questionId: i.questionId,
+                        answeredIndex: (_a = i.answeredIndex) !== null && _a !== void 0 ? _a : 0,
+                        answeredText: (_b = i.answeredText) !== null && _b !== void 0 ? _b : "",
+                        createdAt: new Date(),
+                    });
+                })
             });
             for (let i of studentResp) {
-                let que = yield prisma.question.findUnique({
+                const que = yield prisma.question.findUnique({
                     where: {
                         id: i.questionId
                     },
                     select: {
+                        type: true,
                         correctAnswerIndex: true,
                         marks: true
                     }
                 });
-                if ((que === null || que === void 0 ? void 0 : que.correctAnswerIndex) == i.answeredIndex)
-                    score += que.marks;
+                if (!que)
+                    continue;
+                // Score MCQ questions
+                if (que.type === "MCQ" && que.correctAnswerIndex != null) {
+                    if (que.correctAnswerIndex == i.answeredIndex) {
+                        score += que.marks;
+                    }
+                }
+                // For INPUT questions: award marks only if teacher explicitly verified
+                // (For now, teachers must manually grade input responses)
+                // Optional: Add automatic text matching if correctAnswerText is set
+                else if (que.type === "INPUT") {
+                    // Fetch full question to get correctAnswerText if needed
+                    const fullQuestion = yield prisma.question.findUnique({
+                        where: { id: i.questionId }
+                    });
+                    if ((fullQuestion === null || fullQuestion === void 0 ? void 0 : fullQuestion.correctAnswerText) && ((_a = i.answeredText) === null || _a === void 0 ? void 0 : _a.toLowerCase().trim()) === fullQuestion.correctAnswerText.toLowerCase().trim()) {
+                        score += que.marks;
+                    }
+                }
             }
             const res2 = yield prisma.studentQuiz.create({
                 data: {

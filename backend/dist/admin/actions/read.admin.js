@@ -11,18 +11,18 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.readAdminRouter = void 0;
 const express_1 = require("express");
-const prisma_1 = require("../../generated/prisma");
+const client_1 = require("@prisma/client");
 const auth_middleware_1 = require("../../auth/auth.middleware");
 exports.readAdminRouter = (0, express_1.Router)();
-const prisma = new prisma_1.PrismaClient();
+const prisma = new client_1.PrismaClient();
 exports.readAdminRouter.get("/createdQuizes", auth_middleware_1.verifyJWT, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const quizes = yield prisma.quiz.findMany({
+    const quizes = yield (prisma.quiz.findMany)({
         where: {
             authorId: req.id
         },
         select: {
             id: true,
-            studentQuizzes: true,
+            StudentQuiz: true,
             title: true,
             createdAt: true,
             // isOpen:true 
@@ -58,17 +58,17 @@ exports.readAdminRouter.get("/resultperQuiz/:quizId", auth_middleware_1.verifyJW
             },
             select: {
                 score: true,
-                student: {
+                User: {
                     select: {
                         username: true,
                         id: true,
                         email: true
                     },
                 },
-                // quiz:{
+                // Quiz:{
                 //     select:{
                 //         title:true,
-                //         question:{
+                //         Question:{
                 //            select:{
                 //                 title:true,
                 //                 answers:true,
@@ -85,21 +85,25 @@ exports.readAdminRouter.get("/resultperQuiz/:quizId", auth_middleware_1.verifyJW
                 id: quizIdNum
             },
             select: {
-                question: {
+                Question: {
                     select: {
                         id: true,
                         title: true,
+                        type: true,
                         answers: true,
                         correctAnswerIndex: true,
+                        correctAnswerText: true,
                         marks: true
                     }
                 }
             }
         });
         res.json({
-            result,
+            result: result.map((r) => (Object.assign(Object.assign({}, r), { student: r.User }))),
             quizTitle,
-            questions,
+            questions: questions.map((q) => ({
+                question: q.Question
+            })),
             status: "+"
         });
         console.log(result); //student response

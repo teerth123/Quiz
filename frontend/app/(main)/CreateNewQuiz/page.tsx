@@ -22,8 +22,10 @@ import { useRouter, useSearchParams } from "next/navigation"
 interface BackendQues {
   id: number
   title: string
+  type: "MCQ" | "INPUT"
   answers: string[]
-  correctAnswerIndex: number
+  correctAnswerIndex?: number
+  correctAnswerText?: string
   marks: number
 }
 
@@ -38,9 +40,10 @@ export default function CreateNewQuiz() {
   const [allQuestions, setAllQues] = useState<QuesCardProps[]>([
     {
       quesNo: 1,
-      title: "who is Munni?",
-      answers: ["Munni is Aditi", "Munni is Sheetal", "Munni is Nisha", "Ye sab ek hi hai"],
-      correctAnswerIndex: 1,
+      type: "MCQ",
+      title: "Sample MCQ Question",
+      answers: ["Option 1", "Option 2", "Option 3", "Option 4"],
+      correctAnswerIndex: 0,
       marks: 1,
       id: 0,
     },
@@ -62,9 +65,11 @@ export default function CreateNewQuiz() {
           const fetched: BackendQues[] = res.data.questions?.[0]?.question ?? []
           const mapped: QuesCardProps[] = fetched.map((q, i) => ({
             quesNo: i + 1,
+            type: q.type || "MCQ",
             title: q.title,
             answers: q.answers,
             correctAnswerIndex: q.correctAnswerIndex,
+            correctAnswerText: q.correctAnswerText,
             marks: q.marks,
             id: q.id, // keep backend id to allow proper updates
           }))
@@ -90,6 +95,7 @@ export default function CreateNewQuiz() {
       ...prev,
       {
         quesNo: nextNo,
+        type: "MCQ",
         title: "New Question",
         answers: ["Option 1", "Option 2", "Option 3", "Option 4"],
         correctAnswerIndex: 0,
@@ -153,13 +159,13 @@ export default function CreateNewQuiz() {
 
   return (
     <>
-      <div className="flex flex-col items-center mx-auto">
-        <h1 className="text-4xl font-bold my-20 text-left">
+      <div className="flex flex-col items-center mx-auto w-full">
+        <h1 className="text-4xl font-bold my-20 text-left w-full">
           {isEditing ? "Edit your quiz" : "Let's create something new"}
         </h1>
 
-        <div className="border-2 rounded-2xl flex flex-col w-fit px-[20vw] py-5">
-          <div className="grid w-full max-w-sm items-center gap-3 mt-5">
+        <div className="border-2 rounded-2xl flex flex-col w-11/12 max-w-4xl px-8 py-5">
+          <div className="grid w-full items-center gap-3 mt-5">
             <Label htmlFor="quizTitle" className="font-bold">
               Quiz Title
             </Label>
@@ -171,10 +177,10 @@ export default function CreateNewQuiz() {
             />
           </div>
 
-          <div className="grid w-full max-w-sm items-center gap-3 mt-2">
+          <div className="grid w-full items-center gap-3 mt-2">
             <Label className="font-bold">Mode</Label>
             <Select value={quizMode} onValueChange={setQuizMode}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Form Mode" />
               </SelectTrigger>
               <SelectContent>
@@ -192,9 +198,11 @@ export default function CreateNewQuiz() {
               <div className="my-2" key={q.id}>
                 <QuestionCard
                   quesNo={q.quesNo}
+                  type={q.type}
                   title={q.title}
                   answers={q.answers}
                   correctAnswerIndex={q.correctAnswerIndex}
+                  correctAnswerText={q.correctAnswerText}
                   marks={q.marks}
                   id={q.id}
                   onDelete={onDelete}

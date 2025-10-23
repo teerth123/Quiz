@@ -10,8 +10,10 @@ const prisma = new PrismaClient()
 interface question {
     id: number,
     title: string,
+    type: "MCQ" | "INPUT",
     answers: string[],
-    correctAnswerIndex: number,
+    correctAnswerIndex?: number,
+    correctAnswerText?: string,
     marks: number,
     quizId: number,
     countDown: number,
@@ -45,15 +47,25 @@ putAdminRouter.put("/updateQuiz", verifyJWT, async (req:userReq, res:Response) =
 
             //change in questions
             for(const q of questions){
+                const updateData: any = {
+                    title: q.title,
+                    type: q.type || "MCQ",
+                    answers: q.answers,
+                    marks: q.marks,
+                    countDown: quiz?.realTime ? (q.countDown ?? 30) : null,
+                }
+                
+                // Handle question type-specific fields
+                if (q.type === "INPUT") {
+                    updateData.correctAnswerIndex = null
+                    updateData.correctAnswerText = q.correctAnswerText || null
+                } else {
+                    updateData.correctAnswerIndex = q.correctAnswerIndex
+                }
+                
                 await prisma.question.update({
-                    where:{id:q.id},
-                    data:{
-                        title:q.title,
-                        answers:q.answers,
-                        correctAnswerIndex:q.correctAnswerIndex,
-                        marks:q.marks,
-                        countDown: quiz?.realTime ? (q.countDown ?? 30) : null,
-                    }
+                    where: { id: q.id },
+                    data: updateData
                 })
             }
 

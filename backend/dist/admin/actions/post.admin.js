@@ -77,9 +77,11 @@ exports.postAdminRouter.post("/addQuestions", auth_middleware_1.verifyJWT, (req,
                 var _a;
                 return ({
                     title: i.title,
+                    type: i.type || "MCQ",
                     answers: i.answers,
                     countDown: (quiz === null || quiz === void 0 ? void 0 : quiz.realTime) ? ((_a = i.countDown) !== null && _a !== void 0 ? _a : 30) : null,
-                    correctAnswerIndex: i.correctAnswerIndex,
+                    correctAnswerIndex: i.type === "INPUT" ? null : i.correctAnswerIndex,
+                    correctAnswerText: i.type === "INPUT" ? i.correctAnswerText : null,
                     marks: i.marks,
                     quizId: numId
                 });

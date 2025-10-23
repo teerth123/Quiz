@@ -9,9 +9,11 @@ const prisma = new PrismaClient()
 
 interface question {
     title: string,
+    type: "MCQ" | "INPUT",
     answers: string[],
     countDown: number,
-    correctAnswerIndex: number,
+    correctAnswerIndex?: number,
+    correctAnswerText?: string,
     marks: number,
 }
 
@@ -78,9 +80,11 @@ postAdminRouter.post("/addQuestions", verifyJWT, async (req, res) => {
         const addQuestions = await prisma.question.createMany({
             data: questions.map((i) => ({
                 title: i.title,
+                type: i.type || "MCQ",
                 answers: i.answers,
                 countDown: quiz?.realTime ? (i.countDown ?? 30) : null,
-                correctAnswerIndex: i.correctAnswerIndex,
+                correctAnswerIndex: i.type === "INPUT" ? null : i.correctAnswerIndex,
+                correctAnswerText: i.type === "INPUT" ? i.correctAnswerText : null,
                 marks: i.marks,
                 quizId: numId
             }))

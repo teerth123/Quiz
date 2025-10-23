@@ -9,7 +9,8 @@ const prisma = new PrismaClient()
 
 interface response {
     questionId: number,
-    answeredIndex: number
+    answeredIndex?: number,
+    answeredText?: string
 }
 
 postParticipantRouter.post("/attemptQuiz", verifyJWT, async (req: userReq, res: Response) => {
@@ -56,24 +57,45 @@ postParticipantRouter.post("/attemptQuiz", verifyJWT, async (req: userReq, res: 
                 data: studentResp.map((i) => ({
                     studentId: req.id!,
                     questionId: i.questionId,
-                    answeredIndex: i.answeredIndex,
+                    answeredIndex: i.answeredIndex ?? 0,
+                    answeredText: i.answeredText ?? "",
                     createdAt: new Date(),
-
                 }))
             })
 
             for (let i of studentResp) {
-                let que = await prisma.question.findUnique({
+                const que = await prisma.question.findUnique({
                     where: {
                         id: i.questionId
                     },
                     select: {
+                        type: true,
                         correctAnswerIndex: true,
                         marks: true
                     }
-                })
-                if (que?.correctAnswerIndex == i.answeredIndex)
-                    score += que.marks
+                }) as any
+                
+                if (!que) continue;
+
+                // Score MCQ questions
+                if (que.type === "MCQ" && que.correctAnswerIndex != null) {
+                    if (que.correctAnswerIndex == i.answeredIndex) {
+                        score += que.marks
+                    }
+                }
+                // For INPUT questions: award marks only if teacher explicitly verified
+                // (For now, teachers must manually grade input responses)
+                // Optional: Add automatic text matching if correctAnswerText is set
+                else if (que.type === "INPUT") {
+                    // Fetch full question to get correctAnswerText if needed
+                    const fullQuestion = await prisma.question.findUnique({
+                        where: { id: i.questionId }
+                    }) as any
+                    
+                    if (fullQuestion?.correctAnswerText && i.answeredText?.toLowerCase().trim() === fullQuestion.correctAnswerText.toLowerCase().trim()) {
+                        score += que.marks
+                    }
+                }
             }
 
             const res2 = await prisma.studentQuiz.create({

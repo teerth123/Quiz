@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
 import { attemptQuiz, getQuizByCode } from "@/app/Endpoint"
 
 const geistSans = Geist({
@@ -25,6 +26,7 @@ const geistSans = Geist({
 interface Question {
     id: number
     title: string
+    type: "MCQ" | "INPUT"
     answers: string[]
     marks: number
 }
@@ -41,7 +43,7 @@ export default function AttemptQuiz() {
     const router = useRouter()
     const [quizCode, setQuizCode] = useState("")
     const [quizData, setQuizData] = useState<QuizPayload | null>(null)
-    const [responses, setResponses] = useState<Record<number, number>>({})
+    const [responses, setResponses] = useState<Record<number, { answeredIndex?: number; answeredText?: string }>>({})
     const [loadingQuiz, setLoadingQuiz] = useState(false)
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -71,6 +73,12 @@ export default function AttemptQuiz() {
                     Authorization: `Bearer ${token}`,
                 },
             })
+            console.log("Full response data:", res.data)
+            console.log("Questions array:", res.data.questions)
+            console.log("First question:", res.data.questions[0])
+            if (res.data.questions[0]) {
+                console.log("First question type:", res.data.questions[0].type, "Type of type:", typeof res.data.questions[0].type)
+            }
             setQuizData(res.data)
             setResponses({})
         } catch (err: unknown) {
@@ -86,7 +94,14 @@ export default function AttemptQuiz() {
     const handleOptionSelect = (questionId: number, answerIndex: number) => {
         setResponses((prev) => ({
             ...prev,
-            [questionId]: answerIndex,
+            [questionId]: { answeredIndex: answerIndex },
+        }))
+    }
+
+    const handleTextAnswer = (questionId: number, text: string) => {
+        setResponses((prev) => ({
+            ...prev,
+            [questionId]: { answeredText: text },
         }))
     }
 
@@ -95,7 +110,8 @@ export default function AttemptQuiz() {
             return
         }
 
-        if (quizData.questions.some((question) => responses[question.id] === undefined)) {
+        // Check that every question has a response
+        if (quizData.questions.some((question) => !responses[question.id])) {
             setError("Answer every question before submitting.")
             return
         }
@@ -112,10 +128,20 @@ export default function AttemptQuiz() {
 
             const payload = {
                 quizId: quizData.quiz.id,
-                studentResp: quizData.questions.map((question) => ({
-                    questionId: question.id,
-                    answeredIndex: responses[question.id],
-                })),
+                studentResp: quizData.questions.map((question) => {
+                    const response = responses[question.id]
+                    if (question.type === "MCQ") {
+                        return {
+                            questionId: question.id,
+                            answeredIndex: response.answeredIndex,
+                        }
+                    } else {
+                        return {
+                            questionId: question.id,
+                            answeredText: response.answeredText,
+                        }
+                    }
+                }),
             }
 
             const res = await axios.post(attemptQuiz, payload, {
@@ -181,7 +207,9 @@ export default function AttemptQuiz() {
                         <CardDescription>Answer every question and submit when you are ready.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        {quizData.questions.map((question, questionIndex) => (
+                        {quizData.questions.map((question, questionIndex) => {
+                            console.log(`Question ${questionIndex}:`, question, `Type is MCQ? ${question.type === "MCQ"}`)
+                            return (
                             <div key={question.id} className="space-y-3">
                                 <div>
                                     <p className="font-medium">
@@ -189,25 +217,42 @@ export default function AttemptQuiz() {
                                     </p>
                                     <p className="text-sm text-muted-foreground">Marks: {question.marks}</p>
                                 </div>
-                                <div className="grid gap-2 sm:grid-cols-2">
-                                    {question.answers.map((answer, answerIndex) => {
-                                        const isSelected = responses[question.id] === answerIndex
-                                        return (
-                                            <Button
-                                                key={answerIndex}
-                                                type="button"
-                                                variant={isSelected ? "default" : "outline"}
-                                                className="justify-start text-left"
-                                                onClick={() => handleOptionSelect(question.id, answerIndex)}
-                                            >
-                                                <span className="font-semibold mr-2">{String.fromCharCode(65 + answerIndex)}.</span>
-                                                {answer}
-                                            </Button>
-                                        )
-                                    })}
-                                </div>
+
+                                {question.type === "MCQ" || !question.type ? (
+                                    <div className="grid gap-2 sm:grid-cols-2">
+                                        {question.answers.map((answer, answerIndex) => {
+                                            const isSelected = responses[question.id]?.answeredIndex === answerIndex
+                                            return (
+                                                <Button
+                                                    key={answerIndex}
+                                                    type="button"
+                                                    variant={isSelected ? "default" : "outline"}
+                                                    className="justify-start text-left"
+                                                    onClick={() => handleOptionSelect(question.id, answerIndex)}
+                                                >
+                                                    <span className="font-semibold mr-2">{String.fromCharCode(65 + answerIndex)}.</span>
+                                                    {answer}
+                                                </Button>
+                                            )
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        <Label htmlFor={`answer-${question.id}`} className="text-sm">
+                                            Your Answer
+                                        </Label>
+                                        <Textarea
+                                            id={`answer-${question.id}`}
+                                            placeholder="Enter your answer here..."
+                                            value={responses[question.id]?.answeredText || ""}
+                                            onChange={(e) => handleTextAnswer(question.id, e.target.value)}
+                                            className="min-h-24"
+                                        />
+                                    </div>
+                                )}
                             </div>
-                        ))}
+                            )
+                        })}
                     </CardContent>
                     <CardFooter className="flex justify-end">
                         <Button onClick={handleSubmitQuiz} disabled={submitting}>
