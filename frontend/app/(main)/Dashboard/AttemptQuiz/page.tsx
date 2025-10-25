@@ -17,6 +17,9 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { attemptQuiz, getQuizByCode } from "@/app/Endpoint"
+import { toast } from "sonner"
+import { Loader2 } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -57,12 +60,14 @@ export default function AttemptQuiz() {
 
         if (!code) {
             setError("Enter a quiz code to continue.")
+            toast.error("Enter a quiz code to continue.")
             return
         }
 
         const token = localStorage.getItem("token")
         if (!token) {
             setError("Session expired. Please sign in again.")
+            toast.error("Session expired. Please sign in again.")
             return
         }
 
@@ -81,11 +86,13 @@ export default function AttemptQuiz() {
             }
             setQuizData(res.data)
             setResponses({})
+            toast.success(`Quiz "${res.data.quiz.title}" loaded successfully!`)
         } catch (err: unknown) {
             const axiosError = err as { response?: { data?: { msg?: string } } }
             const msg = axiosError?.response?.data?.msg ?? "Unable to load quiz."
             setQuizData(null)
             setError(msg)
+            toast.error(msg)
         } finally {
             setLoadingQuiz(false)
         }
@@ -113,12 +120,14 @@ export default function AttemptQuiz() {
         // Check that every question has a response
         if (quizData.questions.some((question) => !responses[question.id])) {
             setError("Answer every question before submitting.")
+            toast.error("Answer every question before submitting.")
             return
         }
 
         const token = localStorage.getItem("token")
         if (!token) {
             setError("Session expired. Please sign in again.")
+            toast.error("Session expired. Please sign in again.")
             return
         }
 
@@ -150,7 +159,9 @@ export default function AttemptQuiz() {
                 },
             })
 
-            setMessage(`Quiz submitted successfully! Score: ${res.data?.marks ?? 0}`)
+            const score = res.data?.marks ?? 0
+            setMessage(`Quiz submitted successfully! Score: ${score}`)
+            toast.success(`Quiz submitted! You scored ${score} marks.`)
             setQuizData(null)
             setResponses({})
             setQuizCode("")
@@ -162,6 +173,7 @@ export default function AttemptQuiz() {
             const axiosError = err as { response?: { data?: { msg?: string } } }
             const msg = axiosError?.response?.data?.msg ?? "Submission failed."
             setError(msg)
+            toast.error(msg)
         } finally {
             setSubmitting(false)
         }
@@ -187,6 +199,7 @@ export default function AttemptQuiz() {
                                 />
                             </div>
                             <Button type="submit" disabled={loadingQuiz}>
+                                {loadingQuiz && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {loadingQuiz ? "Finding..." : "Load Quiz"}
                             </Button>
                         </form>
@@ -256,6 +269,7 @@ export default function AttemptQuiz() {
                     </CardContent>
                     <CardFooter className="flex justify-end">
                         <Button onClick={handleSubmitQuiz} disabled={submitting}>
+                            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             {submitting ? "Submitting..." : "Submit Quiz"}
                         </Button>
                     </CardFooter>

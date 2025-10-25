@@ -123,8 +123,14 @@ export default function QuestionCard({
             id={`marks-${quesNo}`}
             type="number"
             placeholder="Marks"
+            min="1"
+            max="100"
             value={Number.isFinite(marks) ? marks : 0}
-            onChange={(e) => onUpdate(id, { marks: Number(e.target.value || 0) })}
+            onChange={(e) => {
+              const value = Number(e.target.value || 0);
+              // Prevent negative marks
+              onUpdate(id, { marks: Math.max(1, Math.min(100, value)) });
+            }}
           />
         </div>
       </div>

@@ -68,3 +68,9 @@ we are done
 ### for testing
 Teacher's credentials - email : teerth12@gmail.com, pass: teerth12
 Student's credentials - email : teerth@gmail.com, pass: okgoogle12
+test@gmail.com Test@123
+
+## suggestions- 
+UI REVAMP
+loader on every api call
+questoin's marks are possibly negative

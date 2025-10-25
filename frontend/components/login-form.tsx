@@ -14,31 +14,57 @@ import { Label } from "@/components/ui/label"
 import { useState } from "react"
 import { redirect, useRouter } from "next/navigation";
 import axios from "axios"
-import { login } from "@/app/Endpoint"; 
+import { login } from "@/app/Endpoint";
+import { toast } from "sonner"
+import { loginSchema, type LoginFormData } from "@/lib/validations"
+import { Loader2 } from "lucide-react"
+
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-const [email, setEmail] = useState("")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<Partial<LoginFormData>>({});
 
   const router = useRouter();
 
   async function submitForm() {
-    try {
-      const res = await axios.post(login, {
-        email: email,
-        password: password,
-        username : username
-      })
-      localStorage.setItem("token", res.data.token)
-      router.push("/Dashboard")
-    } catch (e) {
-      console.error("error found - " + e);
+    // Reset errors
+    setErrors({});
+
+    // Validate form
+    const result = loginSchema.safeParse({ email, password });
+    
+    if (!result.success) {
+      const fieldErrors: Partial<LoginFormData> = {};
+      result.error.issues.forEach((issue) => {
+        if (issue.path[0]) {
+          fieldErrors[issue.path[0] as keyof LoginFormData] = issue.message;
+        }
+      });
+      setErrors(fieldErrors);
+      toast.error("Please fix the errors in the form");
       return;
     }
 
+    try {
+      setIsLoading(true);
+      const res = await axios.post(login, {
+        email: email,
+        password: password,
+      })
+      localStorage.setItem("token", res.data.token)
+      toast.success("Login successful! Redirecting...");
+      router.push("/Dashboard")
+    } catch (e: any) {
+      console.error("error found - " + e);
+      const errorMsg = e.response?.data?.msg || "Login failed. Please check your credentials.";
+      toast.error(errorMsg);
+    } finally {
+      setIsLoading(false);
+    }
   }
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -85,19 +111,54 @@ const [email, setEmail] = useState("")
                     type="email"
                     placeholder="m@example.com"
                     required
+                    value={email}
                     onChange={(e)=>setEmail(e.target.value)}
+                    disabled={isLoading}
                   />
+                  {errors.email && (
+                    <p className="text-sm text-red-500">{errors.email}</p>
+                  )}
                 </div>
                 <div className="grid gap-3">
                   <div className="flex items-center">
                     <Label htmlFor="password">Password</Label>
                     
                   </div>
-                  <Input id="password" type="password" required onChange={(e)=>setPassword(e.target.value)}/>
+                  <Input 
+                    id="password" 
+                    type="password" 
+                    required 
+                    value={password}
+                    onChange={(e)=>setPassword(e.target.value)}
+                    disabled={isLoading}
+                  />
+                  {errors.password && (
+                    <p className="text-sm text-red-500">{errors.password}</p>
+                  )}
+                  <div className="text-xs space-y-1">
+                    <p className={password.length >= 8 ? "text-green-600" : "text-muted-foreground"}>
+                      ✓ At least 8 characters
+                    </p>
+                    <p className={/[A-Z]/.test(password) ? "text-green-600" : "text-muted-foreground"}>
+                      ✓ At least one uppercase letter
+                    </p>
+                    <p className={/[a-z]/.test(password) ? "text-green-600" : "text-muted-foreground"}>
+                      ✓ At least one lowercase letter
+                    </p>
+                    <p className={/[0-9]/.test(password) ? "text-green-600" : "text-muted-foreground"}>
+                      ✓ At least one number
+                    </p>
+                  </div>
                 </div>
-                <Button type="button" className="w-full" onClick={submitForm}>
-                  Login
-                </Button >
+                <Button 
+                  type="button" 
+                  className="w-full" 
+                  onClick={submitForm}
+                  disabled={isLoading}
+                >
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isLoading ? "Logging in..." : "Login"}
+                </Button>
               </div>
               <div className="text-center text-sm" onClick={()=>router.push("/auth/signup")}>
                 Don&apos;t have an account?{" "}

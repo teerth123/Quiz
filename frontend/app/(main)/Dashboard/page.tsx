@@ -16,6 +16,9 @@ import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { MoreVertical, Pencil, Trash2, Copy } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import { Skeleton } from "@/components/ui/skeleton"
+import EmptyQuizState from "@/components/EmptyQuizState"
 
 interface StudentQuiz {
     id: number;
@@ -47,10 +50,12 @@ export default function Dashboard() {
     const [openMenuId, setOpenMenuId] = useState<number | null>(null)
     const [deletingQuizId, setDeletingQuizId] = useState<number | null>(null)
     const [copiedQuizId, setCopiedQuizId] = useState<number | null>(null)
+    const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
         const fetchquestions = async () => {
             try {
+                setIsLoading(true)
                 const token = localStorage.getItem("token")
                 const res = await axios.get(createdQuiz, {
                     headers: {
@@ -59,8 +64,11 @@ export default function Dashboard() {
                 })
                 setQuizzes(res.data.quizes)
             }
-            catch (e) {
+            catch (e: any) {
                 console.error("error found - " + e)
+                toast.error("Failed to load quizzes")
+            } finally {
+                setIsLoading(false)
             }
         }
 
@@ -96,9 +104,11 @@ export default function Dashboard() {
                 }
             })
             setQuizzes((prev) => prev.filter((quiz) => quiz.id !== quizId))
+            toast.success("Quiz deleted successfully")
         }
-        catch (e) {
+        catch (e: any) {
             console.error("error deleting quiz - ", e)
+            toast.error("Failed to delete quiz")
         }
         finally {
             setDeletingQuizId(null)
@@ -109,9 +119,11 @@ export default function Dashboard() {
         try {
             await navigator.clipboard.writeText(code)
             setCopiedQuizId(quizId)
+            toast.success("Quiz code copied to clipboard!")
         }
         catch (e) {
             console.error("error copying quiz code - ", e)
+            toast.error("Failed to copy quiz code")
         }
     }
 
@@ -121,14 +133,40 @@ export default function Dashboard() {
 
     return (
         <>
-
-            <div className="flex w-full max-w-[1250px] justify-end gap-2 px-4 md:px-0 mx-auto mb-5">
-                <Button onClick={() => router.push("/CreateNewQuiz")}>
-                    Create New Quiz
-                </Button>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-w-[1250px] mx-auto">
-                {quizzes.map((quiz) => {
+            {isLoading ? (
+                <>
+                    <div className="flex w-full max-w-[1250px] justify-end gap-2 px-4 md:px-0 mx-auto mb-5">
+                        <Skeleton className="h-10 w-40" />
+                    </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-w-[1250px] mx-auto">
+                    {[1, 2, 3, 4, 5, 6].map((n) => (
+                        <Card key={n} className="w-full max-w-sm h-fit p-3">
+                            <CardHeader>
+                                <Skeleton className="h-6 w-3/4 mb-2" />
+                                <Skeleton className="h-4 w-1/2" />
+                            </CardHeader>
+                            <CardContent>
+                                <Skeleton className="h-4 w-full" />
+                            </CardContent>
+                            <CardFooter>
+                                <Skeleton className="h-4 w-2/3" />
+                            </CardFooter>
+                        </Card>
+                    ))}
+                </div>
+                </>
+            ) : quizzes.length === 0 ? (
+                <EmptyQuizState />
+            ) : (
+                <>
+                    <div className="flex w-full max-w-[1250px] justify-end gap-2 px-4 md:px-0 mx-auto mb-5">
+                        <Button onClick={() => router.push("/CreateNewQuiz")}>
+                            Create New Quiz
+                        </Button>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-w-[1250px] mx-auto">
+                    {quizzes.map((quiz) => {
                     const quizSlug = slugify(quiz.title)
                     const isMenuOpen = openMenuId === quiz.id
                     const isDeleting = deletingQuizId === quiz.id
@@ -228,8 +266,9 @@ export default function Dashboard() {
                         </Card>
                     )
                 })}
-            </div>
-
+                    </div>
+                </>
+            )}
         </>
     )
 }

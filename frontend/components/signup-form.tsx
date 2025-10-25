@@ -14,6 +14,9 @@ import { useState } from "react"
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { signup } from "@/app/Endpoint";
+import { toast } from "sonner"
+import { signupSchema, type SignupFormData } from "@/lib/validations"
+import { Loader2 } from "lucide-react"
 
 export function SignupForm({
   className,
@@ -23,23 +26,47 @@ export function SignupForm({
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<Partial<SignupFormData>>({});
 
   const router = useRouter();
 
   async function submitForm() {
+    // Reset errors
+    setErrors({});
+
+    // Validate form
+    const result = signupSchema.safeParse({ email, password, username });
+    
+    if (!result.success) {
+      const fieldErrors: Partial<SignupFormData> = {};
+      result.error.issues.forEach((issue) => {
+        if (issue.path[0]) {
+          fieldErrors[issue.path[0] as keyof SignupFormData] = issue.message;
+        }
+      });
+      setErrors(fieldErrors);
+      toast.error("Please fix the errors in the form");
+      return;
+    }
+
     try {
+      setIsLoading(true);
       const res = await axios.post(signup, {
         email: email,
         password: password,
         username : username
       })
       localStorage.setItem("token", res.data.token)
+      toast.success("Account created successfully! Redirecting...");
       router.push("/Dashboard")
-    } catch (e) {
+    } catch (e: any) {
       console.error("error found - " + e);
-      return;
+      const errorMsg = e.response?.data?.msg || "Signup failed. Please try again.";
+      toast.error(errorMsg);
+    } finally {
+      setIsLoading(false);
     }
-
   }
 
 
@@ -89,34 +116,67 @@ export function SignupForm({
                     type="email"
                     placeholder="m@example.com"
                     required
+                    value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    disabled={isLoading}
                   />
-                </div>
-                <div className="grid gap-3">
-                  <div className="flex items-center">
-                    <Label htmlFor="password">Password</Label>
-                    {/* <a
-                      href="#"
-                      className="ml-auto text-sm underline-offset-4 hover:underline"
-                    >
-                      Forgot your password?
-                    </a> */}
-                  </div>
-                  <Input id="password" type="password" required onChange={(e) => setPassword(e.target.value)}
-                  />
+                  {errors.email && (
+                    <p className="text-sm text-red-500">{errors.email}</p>
+                  )}
                 </div>
                 <div className="grid gap-3">
                   <Label htmlFor="username">Username</Label>
                   <Input
                     id="username"
-                    type="username"
+                    type="text"
                     placeholder="Teerth Kulkarni"
                     required
+                    value={username}
                     onChange={(e) => setUsername(e.target.value)}
+                    disabled={isLoading}
                   />
+                  {errors.username && (
+                    <p className="text-sm text-red-500">{errors.username}</p>
+                  )}
                 </div>
-                <Button type="button" className="w-full" onClick={() => submitForm()}>
-                  Sign up
+                <div className="grid gap-3">
+                  <div className="flex items-center">
+                    <Label htmlFor="password">Password</Label>
+                  </div>
+                  <Input 
+                    id="password" 
+                    type="password" 
+                    required 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={isLoading}
+                  />
+                  {errors.password && (
+                    <p className="text-sm text-red-500">{errors.password}</p>
+                  )}
+                  <div className="text-xs space-y-1">
+                    <p className={password.length >= 8 ? "text-green-600" : "text-muted-foreground"}>
+                      ✓ At least 8 characters
+                    </p>
+                    <p className={/[A-Z]/.test(password) ? "text-green-600" : "text-muted-foreground"}>
+                      ✓ At least one uppercase letter
+                    </p>
+                    <p className={/[a-z]/.test(password) ? "text-green-600" : "text-muted-foreground"}>
+                      ✓ At least one lowercase letter
+                    </p>
+                    <p className={/[0-9]/.test(password) ? "text-green-600" : "text-muted-foreground"}>
+                      ✓ At least one number
+                    </p>
+                  </div>
+                </div>
+                <Button 
+                  type="button" 
+                  className="w-full" 
+                  onClick={() => submitForm()}
+                  disabled={isLoading}
+                >
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isLoading ? "Creating account..." : "Sign up"}
                 </Button>
               </div>
               <div className="text-center text-sm">
